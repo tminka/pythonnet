@@ -110,7 +110,7 @@ class build_dotnet(Command):
 
     def finalize_options(self):
         if self.dotnet_config is None:
-            self.dotnet_config = "release"
+            self.dotnet_config = "debug"
 
         build = self.distribution.get_command_obj("build")
         build.ensure_finalized()

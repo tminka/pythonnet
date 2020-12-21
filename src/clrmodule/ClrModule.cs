@@ -26,6 +26,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+
 using NXPorts.Attributes;
 
 public class clrModule
@@ -78,6 +79,10 @@ public class clrModule
 
                 Assembly executingAssembly = Assembly.GetExecutingAssembly();
                 string assemblyDirectory = Path.GetDirectoryName(executingAssembly.Location);
+#if DEBUG
+                string newAssemblyDirectory = Path.Combine(assemblyDirectory, @"..\..\..\src\runtime\bin\Debug\netstandard2.0");
+                if (Directory.Exists(newAssemblyDirectory)) assemblyDirectory = newAssemblyDirectory;
+#endif
                 if (assemblyDirectory == null)
                 {
                     throw new InvalidOperationException(executingAssembly.Location);

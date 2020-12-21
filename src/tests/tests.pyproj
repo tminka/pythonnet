@@ -11,22 +11,17 @@
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId />
-    <InterpreterVersion />
+    <TestFramework>pytest</TestFramework>
+    <UnitTestPattern>test*.py</UnitTestPattern>
+    <UnitTestRootDirectory>.</UnitTestRootDirectory>
+    <InterpreterId>
+    </InterpreterId>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'DebugMono'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'DebugWin'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseMono'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseWin'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'DebugMonoPY3'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'DebugWinPY3'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseMonoPY3'" />
-  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseWinPY3'" />
   <PropertyGroup>
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
-    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="conftest.py" />
     <Compile Include="__init__.py" />
     <Compile Include="_missing_import.py" />
     <Compile Include="leaktest.py" />
@@ -65,6 +60,5 @@
   <ItemGroup>
     <Folder Include="fixtures" />
   </ItemGroup>
-  <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
