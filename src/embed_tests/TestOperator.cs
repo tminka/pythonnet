@@ -212,25 +212,6 @@ namespace Python.EmbeddingTest
                 return (a.Num >= b);
             }
 
-            public static bool operator >=(OperableObject a, PyObject b)
-            {
-                using (Py.GIL())
-                {
-                    // Assuming b is a tuple, take the first element.
-                    int bNum = b[0].As<int>();
-                    return a.Num >= bNum;
-                }
-            }
-            public static bool operator <=(OperableObject a, PyObject b)
-            {
-                using (Py.GIL())
-                {
-                    // Assuming b is a tuple, take the first element.
-                    int bNum = b[0].As<int>();
-                    return a.Num <= bNum;
-                }
-            }
-
             public static bool operator <(int a, OperableObject b)
             {
                 return (a < b.Num);
@@ -410,12 +391,42 @@ assert c == (a.Num > b)
 ");
         }
 
+
+        public class ComparableObject
+        {
+            public int Num { get; set; }
+
+            public ComparableObject(int num)
+            {
+                Num = num;
+            }
+
+            public static bool operator >=(ComparableObject a, PyObject b)
+            {
+                using (Py.GIL())
+                {
+                    // Assuming b is a tuple, take the first element.
+                    int bNum = b[0].As<int>();
+                    return a.Num >= bNum;
+                }
+            }
+            public static bool operator <=(ComparableObject a, PyObject b)
+            {
+                using (Py.GIL())
+                {
+                    // Assuming b is a tuple, take the first element.
+                    int bNum = b[0].As<int>();
+                    return a.Num <= bNum;
+                }
+            }
+        }
+
         [Test]
         public void TupleComparisonOperatorOverloads()
         {
                 string name = string.Format("{0}.{1}",
-                typeof(OperableObject).DeclaringType.Name,
-                typeof(OperableObject).Name);
+                typeof(ComparableObject).DeclaringType.Name,
+                typeof(ComparableObject).Name);
             string module = MethodBase.GetCurrentMethod().DeclaringType.Namespace;
                 PythonEngine.Exec($@"
 from {module} import *
