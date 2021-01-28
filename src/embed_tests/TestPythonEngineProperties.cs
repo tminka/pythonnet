@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
 using NUnit.Framework;
+
 using Python.Runtime;
 
 namespace Python.EmbeddingTest
@@ -180,39 +185,101 @@ namespace Python.EmbeddingTest
         [Test]
         public void SetPythonPath()
         {
-            PythonEngine.Initialize();
+            string[] moduleNames = new string[] {
+                "subprocess",
+            };
+            string path;
 
-            const string moduleName = "pytest";
-            bool importShouldSucceed;
-            try
+            using (Py.GIL())
             {
-                Py.Import(moduleName);
-                importShouldSucceed = true;
+                // path should not be set to PythonEngine.PythonPath here.
+                // PythonEngine.PythonPath gets the default module search path, not the full search path.
+                // The list sys.path is initialized with this value on interpreter startup;
+                // it can be (and usually is) modified later to change the search path for loading modules.
+                // See https://docs.python.org/3/c-api/init.html#c.Py_GetPath
+                // After PythonPath is set, then PythonEngine.PythonPath will correctly return the full search path. 
+
+                string[] paths = Py.Import("sys").GetAttr("path").As<string[]>();
+                path = string.Join(Path.PathSeparator.ToString(), paths);
+
+                TryToImport(moduleNames, "before setting PythonPath");
             }
-            catch
-            {
-                importShouldSucceed = false;
-            }
-
-            string[] paths = Py.Import("sys").GetAttr("path").As<string[]>();
-            string path = string.Join(System.IO.Path.PathSeparator.ToString(), paths);
-
-            // path should not be set to PythonEngine.PythonPath here.
-            // PythonEngine.PythonPath gets the default module search path, not the full search path.
-            // The list sys.path is initialized with this value on interpreter startup;
-            // it can be (and usually is) modified later to change the search path for loading modules.
-            // See https://docs.python.org/3/c-api/init.html#c.Py_GetPath
-            // After PythonPath is set, then PythonEngine.PythonPath will correctly return the full search path. 
-
-            PythonEngine.Shutdown();
 
             PythonEngine.PythonPath = path;
-            PythonEngine.Initialize();
 
-            Assert.AreEqual(path, PythonEngine.PythonPath);
-            if (importShouldSucceed) Py.Import(moduleName);
+            using (Py.GIL())
+            {
 
-            PythonEngine.Shutdown();
+                Assert.AreEqual(path, PythonEngine.PythonPath);
+                // Check that the modules remain loadable
+                TryToImport(moduleNames, "after setting PythonEngine.PythonPath");
+            }
+        }
+
+        string ListModules()
+        {
+            try
+            {
+                var pkg_resources = Py.Import("pkg_resources");
+                var locals = new PyDict();
+                locals.SetItem("pkg_resources", pkg_resources);
+                return PythonEngine.Eval(@"sorted(['%s==%s' % (i.key, i.version) for i in pkg_resources.working_set])", null, locals.Handle).ToString();
+            }
+            catch (PythonException ex)
+            {
+                return ex.ToString();
+            }
+        }
+
+        void CheckImport(string moduleName)
+        {
+            PythonEngine.Exec($@"
+module_name = r'{moduleName}'
+import sys
+import importlib.util
+if module_name not in sys.modules:
+    spec = importlib.util.find_spec(module_name)
+    if spec is None:
+        raise ImportError('find_spec returned None')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+");
+        }
+
+        void TryToImport(IEnumerable<string> moduleNames, string message)
+        {
+            List<Exception> exceptions = new List<Exception>();
+            foreach (var moduleName in moduleNames)
+            {
+                var exception = TryToImport(moduleName, message);
+                if (exception != null) exceptions.Add(exception);
+            }
+            if (exceptions.Count > 0)
+            {
+                throw new AggregateException(exceptions);
+            }
+        }
+
+        Exception TryToImport(string moduleName, string message)
+        {
+            try
+            {
+                CheckImport(moduleName);
+                Py.Import(moduleName);
+                return null;
+            }
+            catch (PythonException ex)
+            {
+                string[] paths = Py.Import("sys").GetAttr("path").As<string[]>();
+                string path = string.Join(Path.PathSeparator.ToString(), paths);
+                string[] messages = paths.Where(p => p.Contains("site-packages")).Select(folder =>
+                    (folder != null && Directory.Exists(folder)) ?
+                    $" {folder} contains {string.Join(Path.PathSeparator.ToString(), Directory.EnumerateFileSystemEntries(folder).Select(fullName => Path.GetFileName(fullName)).ToArray())}" :
+                    "").ToArray();
+                string folderContents = string.Join(" ", messages);
+                return new Exception($"Py.Import(\"{moduleName}\") failed {message}, sys.path={path}{folderContents} pkg_resources.working_set={ListModules()}", ex);
+            }
         }
     }
 }

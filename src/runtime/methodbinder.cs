@@ -690,7 +690,7 @@ namespace Python.Runtime
         {
             arg = null;
             isOut = false;
-            var clrtype = TryComputeClrArgumentType(parameterType, op, needsResolution: needsResolution);
+            var clrtype = TryComputeClrArgumentType(parameterType, op, needsResolution: false);
             if (clrtype == null)
             {
                 return false;

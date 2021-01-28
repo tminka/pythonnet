@@ -25,6 +25,22 @@ namespace Python.PythonTestsRunner
             PythonEngine.Shutdown();
         }
 
+        [Test]
+        public void InferTest()
+        {
+            string folder = @"C:\Users\minka\Depots\TrueSkill\Infer.NET\test\TestPython";
+            string testFile = "test_tutorials";
+            string testName = "test_tutorials";
+            PythonEngine.Exec($@"
+import sys
+import os
+os.chdir(r'{folder}')
+sys.path.append(r'{folder}')
+from {testFile} import *
+{testName}()
+");
+        }
+
         /// <summary>
         /// Selects the Python tests to be run as embedded tests.
         /// </summary>

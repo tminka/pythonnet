@@ -61,16 +61,47 @@ namespace Python.Runtime
                 return Exceptions.RaiseTypeError("type(s) expected");
             }
 
-            MethodInfo mi = MethodBinder.MatchParameters(self.m.info, types);
-            if (mi == null)
+            MethodInfo[] methods = MatchParameters(self.m.info, types);
+            if (methods.Length == 0)
             {
                 return Exceptions.RaiseTypeError("No match found for given type params");
             }
-
-            var mb = new MethodBinding(self.m, self.target) { info = mi };
+            var mo = new MethodObject(self.m.type, self.m.name, methods);
+            var mb = new MethodBinding(mo, self.target, self.targetType);
             return mb.pyHandle;
         }
 
+        /// <summary>
+        /// Given a sequence of MethodInfo and a sequence of type parameters,
+        /// returns all MethodInfos that are closed over those parameters.
+        /// </summary>
+        internal static MethodInfo[] MatchParameters(MethodInfo[] mi, Type[] tp)
+        {
+            if (tp == null)
+            {
+                return null;
+            }
+            int count = tp.Length;
+            List<MethodInfo> infos = new List<MethodInfo>();
+            foreach (MethodInfo t in mi)
+            {
+                if (!t.IsGenericMethodDefinition)
+                {
+                    continue;
+                }
+                Type[] args = t.GetGenericArguments();
+                if (args.Length != count)
+                {
+                    continue;
+                }
+                try
+                {
+                    infos.Add(t.MakeGenericMethod(tp));
+                }
+                catch { }
+            }
+            return infos.ToArray();
+        }
 
         /// <summary>
         /// MethodBinding __getattribute__ implementation.
